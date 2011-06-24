@@ -45,7 +45,7 @@ BREEDER_DIVIDER = '#' * 79
 def breed_python(fn, main):
   fd = open(fn, 'rb')
   lines = [l.replace('\n', '').replace('\r', '') for l in fd.readlines()]
-  fd.close() 
+  fd.close()
   if main: return '\n'.join(lines)
 
   path = os.path.dirname(fn)
@@ -75,10 +75,10 @@ def breed_python(fn, main):
 def breed_text(fn):
   fd = open(fn, 'rb')
   lines = [l.replace('\n', '').replace('\r', '') for l in fd.readlines()]
-  fd.close() 
+  fd.close()
 
   text = ['__FILES[".SELF/%s"] = """\\' % fn]
-  for line in ddict[mn]:
+  for line in lines:
     text.append('%s' % line.replace('\\', '\\\\').replace('"', '\\"'))
 
   return ''.join(text)
@@ -86,20 +86,47 @@ def breed_text(fn):
 def breed_binary(fn):
   fd = open(fn, 'rb')
   lines = [l.replace('\n', '').replace('\r', '') for l in fd.readlines()]
-  fd.close() 
+  fd.close()
 
   text = ['__FILES[".SELF/%s"] = """\\' % fn]
-  for line in ddict[mn]:
+  for line in lines:
     text.append('%s' % line.replace('\\', '\\\\').replace('"', '\\"'))
 
   return ''.join(text)
 
+def breed_dir(dn, main):
+  files = [f for f in os.listdir(dn) if not f.startswith('.')]
+  text = []
 
-def breed(fn, main):
+  # Make sure __init__.py is FIRST.
+  if '__init__.py' in files:
+    files.remove('__init__.py')
+    files[0:0] = ['__init__.py']
+
+  # Make sure __main__.py is either excluded, or LAST
+  if '__main__.py' in files:
+    files.remove('__main__.py')
+    if main: files.append('__main__.py')
+
+  for fn in files:
+    ismain = (main and fn == files[-1])
+    fn = os.path.join(dn, fn)
+    bred = breed(fn, ismain, smart=True)
+    if bred: text.append(bred)
+
+  return ('\n%s\n' % BREEDER_DIVIDER).join(text)
+
+EXCL = ('pyc', 'tmp', 'bak')
+def breed(fn, main, smart=False):
   if '"' in fn or '\\' in fn:
     raise ValueError('Cannot handle " or \\ in filenames')
 
+  if os.path.isdir(fn):
+    return breed_dir(fn, main)
+
   extension = fn.split('.')[-1].lower()
+  if smart and extension in EXCL: return ''
+
   if extension in ('py', 'pyw'):
     return breed_python(fn, main)
 
