@@ -5,24 +5,8 @@
 #
 import os, sys
 
-pydata = { }
-data =  { }
-order = [ ]
-for filename in sys.argv[1:]:
-  if '"' in filename or '\\' in filename:
-    raise ValueError('Cannot handle " or \\ in filenames')
-
-  order.append(filename)
-  fd = open(filename, 'r')
-  lines = [l.replace('\n', '').replace('\r', '') for l in fd.readlines()]
-  fd.close() 
-
-  if filename.endswith('.py') or filename.endswith('.pyw'):
-    pydata[filename] = lines
-  else:
-    data[filename] = lines
-
-print """#!/usr/bin/python
+BREEDER_PREAMBLE = """\
+#!/usr/bin/python
 #
 # NOTE: This is a compilation of multiple Python files.
 #       See below for details on individual segments.
@@ -50,40 +34,86 @@ os.path.exists = __comb_exists
 sys.path[0:0] = ['.SELF/']
 
 """
+BREEDER_POSTAMBLE = """\
 
-for mn in order:
-  if mn in pydata:
-    what = 'MODULE'
-    ddict = pydata
+#EOF#
+"""
+
+BREEDER_DIVIDER = '#' * 79
+
+
+def breed_python(fn, main):
+  fd = open(fn, 'rb')
+  lines = [l.replace('\n', '').replace('\r', '') for l in fd.readlines()]
+  fd.close() 
+  if main: return '\n'.join(lines)
+
+  path = os.path.dirname(fn)
+  if fn.endswith('/__init__.py'):
+    bn = os.path.basename(path)
+    path = path[:-len(bn)+1]
   else:
-    what = 'FILE'
-    ddict = data
+    bn = os.path.basename(fn).replace('.py', '')
 
-  if mn.endswith('/__init__.py'):
-    bn = os.path.basename(os.path.dirname(mn))
-  else:
-    bn = os.path.basename(mn).replace('.py', '')
+  while path and os.path.exists(os.path.join(path, '__init__.py')):
+    pbn = os.path.basename(path)
+    bn = '%s.%s' % (pbn, bn)
+    path = path[:-len(pbn)+1]
 
-  print '%s' % '#' * 79
-  print
-  if mn != order[-1] and what == 'MODULE':
-    print '__FILES[".SELF/%s"] = """\\' % mn
-    for line in ddict[mn]:
-      print '%s' % line.replace('\\', '\\\\').replace('"', '\\"')
-    print '"""'
-    print 'sys.modules["%s"] = imp.new_module("%s")' % (bn, bn)
-    print 'sys.modules["%s"].open = __comb_open' % (bn, )
-    print 'exec __FILES[".SELF/%s"] in sys.modules["%s"].__dict__' % (mn, bn)
+  text = ['__FILES[".SELF/%s"] = """\\' % fn]
+  for line in lines:
+    text.append('%s' % line.replace('\\', '\\\\').replace('"', '\\"'))
+  text.extend([
+    '"""',
+    'sys.modules["%s"] = imp.new_module("%s")' % (bn, bn),
+    'sys.modules["%s"].open = __comb_open' % (bn, ),
+    'exec __FILES[".SELF/%s"] in sys.modules["%s"].__dict__' % (fn, bn),
+    ''
+  ])
+  return '\n'.join(text)
 
-  elif what == 'FILE':
-    print '__FILES[".SELF/%s"] = """\\' % mn
-    for line in ddict[mn]:
-      print '%s' % line.replace('\\', '\\\\').replace('"', '\\"')
-    print '"""'
+def breed_text(fn):
+  fd = open(fn, 'rb')
+  lines = [l.replace('\n', '').replace('\r', '') for l in fd.readlines()]
+  fd.close() 
 
-  else:
-    for line in ddict[mn]:
-      print '%s' % line
+  text = ['__FILES[".SELF/%s"] = """\\' % fn]
+  for line in ddict[mn]:
+    text.append('%s' % line.replace('\\', '\\\\').replace('"', '\\"'))
 
-  print
+  return ''.join(text)
+
+def breed_binary(fn):
+  fd = open(fn, 'rb')
+  lines = [l.replace('\n', '').replace('\r', '') for l in fd.readlines()]
+  fd.close() 
+
+  text = ['__FILES[".SELF/%s"] = """\\' % fn]
+  for line in ddict[mn]:
+    text.append('%s' % line.replace('\\', '\\\\').replace('"', '\\"'))
+
+  return ''.join(text)
+
+
+def breed(fn, main):
+  if '"' in fn or '\\' in fn:
+    raise ValueError('Cannot handle " or \\ in filenames')
+
+  extension = fn.split('.')[-1].lower()
+  if extension in ('py', 'pyw'):
+    return breed_python(fn, main)
+
+  if extension in ('txt', 'md', 'html', 'css', 'js'):
+    return breed_text(fn)
+
+  return breed_binary(fn)
+
+
+if __name__ == '__main__':
+  print BREEDER_PREAMBLE
+  for fn in sys.argv[1:]:
+    print BREEDER_DIVIDER
+    print breed(fn, main=(fn == sys.argv[-1]))
+    print
+  print BREEDER_POSTAMBLE
 
