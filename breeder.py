@@ -86,8 +86,9 @@ def breed_text(fn):
   text = ['__FILES[".SELF/%s"] = """\\' % fn]
   for line in lines:
     text.append('%s' % line.replace('\\', '\\\\').replace('"', '\\"'))
+  text.append('"""')
 
-  return ''.join(text)
+  return '\n'.join(text)
 
 def breed_binary(fn):
   fd = open(fn, 'rb')
