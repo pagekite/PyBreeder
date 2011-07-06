@@ -67,6 +67,12 @@ def breed_python(fn, main):
     '"""',
     'sys.modules["%s"] = imp.new_module("%s")' % (bn, bn),
     'sys.modules["%s"].open = __comb_open' % (bn, ),
+  ])
+  if '.' in bn:
+    parts = bn.split('.')
+    text.append(('sys.modules["%s"].%s = sys.modules["%s"]'
+                 ) % ('.'.join(parts[:-1]), parts[-1], bn))
+  text.extend([
     'exec __FILES[".SELF/%s"] in sys.modules["%s"].__dict__' % (fn, bn),
     ''
   ])
