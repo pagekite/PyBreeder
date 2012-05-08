@@ -37,7 +37,7 @@ sys.path[0:0] = ['.SELF/']
 BREEDER_GTK_PREAMBLE = """\
 try:
   import gobject, gtk
-  def gtk_open_image(filename): return __FILES[filename]
+  def gtk_open_image(filename): return __FILES[filename.replace('\\\\', '/')]
 except ImportError:
   pass
 
@@ -87,14 +87,14 @@ def breed_python(fn, main, compress=False):
   path = os.path.dirname(fn)
   if fn.endswith('/__init__.py'):
     bn = os.path.basename(path)
-    path = path[:-len(bn)+1]
+    path = path[:-(len(bn)+1)]
   else:
     bn = os.path.basename(fn).replace('.py', '')
 
   while path and os.path.exists(os.path.join(path, '__init__.py')):
     pbn = os.path.basename(path)
     bn = '%s.%s' % (pbn, bn)
-    path = path[:-len(pbn)+1]
+    path = path[:-(len(pbn)+1)]
 
   text = ['__FILES[".SELF/%s"] = %s' % (fn, pre)]
   text.extend(lines)
