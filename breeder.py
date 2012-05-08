@@ -5,11 +5,17 @@
 #
 import base64, os, sys, zlib
 
+BREEDER_NOTE = """\
+#
+# WARNING:  This is a compilation of multiple Python files.  Do not edit.
+#
+"""
 BREEDER_PREAMBLE = """\
 #!/usr/bin/python
 #
-# NOTE: This is a compilation of multiple Python files.
-#       See below for details on individual segments.
+%s
+#
+##[ Combined with Breeder: http://pagekite.net/wiki/Floss/PyBreeder/ ]#######
 #
 import base64, imp, os, sys, StringIO, zlib
 
@@ -201,6 +207,7 @@ def breed(fn, main, smart=True, gtk_images=False, compress=False):
 
 if __name__ == '__main__':
   gtk_images = compress = False
+  header = BREEDER_NOTE
 
   args = sys.argv[1:]
   if '--gtk-images' in args:
@@ -210,8 +217,11 @@ if __name__ == '__main__':
   if '--compress' in args:
     compress=True
     args.remove('--compress')
+  if '--header' in args:
+    header = ''.join(open(args.pop(args.index('--header')+1), 'r').readlines())
+    args.remove('--header')
 
-  print BREEDER_PREAMBLE
+  print BREEDER_PREAMBLE % header.strip()
   if gtk_images:
     print BREEDER_GTK_PREAMBLE
   for fn in args:
