@@ -35,6 +35,11 @@ def __comb_exists(filename, *args, **kwargs):
   else:
     return __os_path_exists(filename, *args, **kwargs)
 
+if 'b64decode' in dir(base64):
+  b64d = base64.b64decode
+else:
+  b64d = base64.decodestring
+
 open = __comb_open
 os.path.exists = __comb_exists
 sys.path[0:0] = ['.SELF/']
@@ -71,10 +76,10 @@ def format_snake(fn, raw=False, compress=False, binary=False):
               .replace('\r', '')
              for l in fd.readlines()]
   elif compress:
-    pre, post = 'zlib.decompress(base64.b64decode("""\\', '"""))'
+    pre, post = 'zlib.decompress(b64d("""\\', '"""))'
     lines = br79(base64.b64encode(zlib.compress(''.join(fd.readlines()), 9)))
   elif binary:
-    pre, post = 'base64.b64decode("""\\', '""")'
+    pre, post = 'b64d("""\\', '""")'
     lines = br79(base64.b64encode(''.join(fd.readlines())))
   else:
     pre, post = '"""\\', '"""'
@@ -146,7 +151,7 @@ def breed_gtk_image(fn):
   data = '\n'.join(lines)
   text = [('__FILES[".SELF/%s"] = \\\n  gtk.gdk.pixbuf_new_from_data(%s)'
            ) % (fn, ', '.join([str(p) for p in [
-             'zlib.decompress(base64.b64decode("""\\\n%s"""\n  ))' % data,
+             'zlib.decompress(b64d("""\\\n%s"""\n  ))' % data,
              'gtk.gdk.COLORSPACE_RGB',
              pb.get_has_alpha(),
              pb.get_bits_per_sample(),
