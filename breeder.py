@@ -15,42 +15,37 @@ BREEDER_PREAMBLE = """\
 #
 %s
 #
-##[ Combined with Breeder: http://pagekite.net/wiki/Floss/PyBreeder/ ]#######
-#
-import base64, imp, os, sys, StringIO, zlib
+##[ Combined with Breeder: http://pagekite.net/wiki/Floss/PyBreeder/ ]#########
 
+import base64, imp, os, sys, StringIO, zlib
 __FILES = {}
 __os_path_exists = os.path.exists
 __builtin_open = open
-
 def __comb_open(filename, *args, **kwargs):
   if filename in __FILES:
     return StringIO.StringIO(__FILES[filename])
   else:
     return __builtin_open(filename, *args, **kwargs)
-
 def __comb_exists(filename, *args, **kwargs):
   if filename in __FILES:
     return True
   else:
     return __os_path_exists(filename, *args, **kwargs)
-
 if 'b64decode' in dir(base64):
-  b64d = base64.b64decode
+  __b64d = base64.b64decode
 else:
-  b64d = base64.decodestring
-
+  __b64d = base64.decodestring
 open = __comb_open
 os.path.exists = __comb_exists
 sys.path[0:0] = ['.SELF/']
-
 """
 BREEDER_GTK_PREAMBLE = """\
 try:
   import gobject, gtk
-  def gtk_open_image(filename): return __FILES[filename.replace('\\\\', '/')]
+  def gtk_open_image(filename):
+    return __FILES[filename.replace('\\\\', '/')+':GTK']
 except ImportError:
-  pass
+  gtk_open_image = None
 
 """
 BREEDER_POSTAMBLE = """\
@@ -76,10 +71,10 @@ def format_snake(fn, raw=False, compress=False, binary=False):
               .replace('\r', '')
              for l in fd.readlines()]
   elif compress:
-    pre, post = 'zlib.decompress(b64d("""\\', '"""))'
+    pre, post = 'zlib.decompress(__b64d("""\\', '"""))'
     lines = br79(base64.b64encode(zlib.compress(''.join(fd.readlines()), 9)))
   elif binary:
-    pre, post = 'b64d("""\\', '""")'
+    pre, post = '__b64d("""\\', '""")'
     lines = br79(base64.b64encode(''.join(fd.readlines())))
   else:
     pre, post = '"""\\', '"""'
@@ -91,7 +86,7 @@ def format_snake(fn, raw=False, compress=False, binary=False):
   fd.close()
   return pre, lines, post
 
-def breed_python(fn, main, compress=False):
+def breed_python(fn, main, compress=False, gtk_images=False):
   pre, lines, post = format_snake(fn, raw=main, compress=compress)
   if main: return '\n'.join(lines)
 
@@ -114,6 +109,8 @@ def breed_python(fn, main, compress=False):
     'sys.modules["%s"] = imp.new_module("%s")' % (bn, bn),
     'sys.modules["%s"].open = __comb_open' % (bn, ),
   ])
+  if gtk_images:
+    text.append('sys.modules["%s"].gtk_open_image = gtk_open_image' % (bn, ))
   if '.' in bn:
     parts = bn.split('.')
     text.append(('sys.modules["%s"].%s = sys.modules["%s"]'
@@ -149,10 +146,11 @@ def breed_gtk_image(fn):
   pb = img.get_pixbuf()
   lines = br79(base64.b64encode(zlib.compress(pb.get_pixels(), 9)))
   data = '\n'.join(lines)
-  text = [('__FILES[".SELF/%s"] = \\\n  gtk.gdk.pixbuf_new_from_data(%s)'
+  text = [breed_binary(fn).strip(),
+          ('__FILES[".SELF/%s:GTK"] = gtk.gdk.pixbuf_new_from_data(\n  %s)'
            ) % (fn, ', '.join([str(p) for p in [
-             'zlib.decompress(b64d("""\\\n%s"""\n  ))' % data,
-             'gtk.gdk.COLORSPACE_RGB',
+             'zlib.decompress(__b64d("""\\\n%s"""\n  ))' % data,
+             '\n  gtk.gdk.COLORSPACE_RGB',
              pb.get_has_alpha(),
              pb.get_bits_per_sample(),
              pb.get_width(),
@@ -199,7 +197,7 @@ def breed(fn, main, smart=True, gtk_images=False, compress=False):
   if smart and extension in EXCL: return ''
 
   if extension in ('py', 'pyw'):
-    return breed_python(fn, main, compress=compress)
+    return breed_python(fn, main, gtk_images=gtk_images, compress=compress)
 
   if extension in ('txt', 'md', 'html', 'css', 'js', 'pk-shtml'):
     return breed_text(fn, compress=compress)
