@@ -20,6 +20,7 @@ BREEDER_PREAMBLE = """\
 import base64, imp, os, sys, StringIO, zlib
 __FILES = {}
 __os_path_exists = os.path.exists
+__os_path_getsize = os.path.getsize
 __builtin_open = open
 def __comb_open(filename, *args, **kwargs):
   if filename in __FILES:
@@ -31,12 +32,18 @@ def __comb_exists(filename, *args, **kwargs):
     return True
   else:
     return __os_path_exists(filename, *args, **kwargs)
+def __comb_getsize(filename, *args, **kwargs):
+  if filename in __FILES:
+    return len(__FILES[filename])
+  else:
+    return __os_path_getsize(filename, *args, **kwargs)
 if 'b64decode' in dir(base64):
   __b64d = base64.b64decode
 else:
   __b64d = base64.decodestring
 open = __comb_open
 os.path.exists = __comb_exists
+os.path.getsize = __comb_getsize
 sys.path[0:0] = ['.SELF/']
 """
 BREEDER_GTK_PREAMBLE = """\
