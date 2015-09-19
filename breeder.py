@@ -12,7 +12,7 @@ BREEDER_NOTE = """\
 """
 BREEDER_PREAMBLE = """\
 #!/usr/bin/python
-#
+# vim: set fileencoding=utf-8 :
 %s
 #
 ##[ Combined with Breeder: http://pagekite.net/wiki/Floss/PyBreeder/ ]#########
