@@ -230,6 +230,15 @@ if __name__ == '__main__':
   if '--header' in args:
     header = ''.join(open(args.pop(args.index('--header')+1), 'r').readlines())
     args.remove('--header')
+  if '--virtualenv' in args:
+    pos = args.index('--virtualenv')
+    env = os.path.join(args[pos+1], 'lib')
+    assert(os.path.isdir(env))
+    env = os.path.join(
+        env,
+        [d for d in os.listdir(env) if d.startswith('python')][0],
+        'site-packages')
+    args[pos:pos+2] = [env]
 
   print BREEDER_PREAMBLE % header.strip()
   if gtk_images:
