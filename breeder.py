@@ -11,7 +11,7 @@ BREEDER_NOTE = """\
 #
 """
 BREEDER_PREAMBLE = """\
-#!/usr/bin/python
+#!/usr/bin/env python2
 # vim: set fileencoding=utf-8 :
 %s
 #
