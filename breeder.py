@@ -76,7 +76,8 @@ def format_snake(fn, raw=False, compress=False, binary=False):
     pre, post = '"""\\', '"""'
     lines = [l.replace('\n', '')
               .replace('\r', '')
-             for l in fd.readlines()]
+             for l in fd.readlines()
+             if not l.startswith('from __future__ import')]
   elif compress:
     pre, post = 'zlib.decompress(__b64d("""\\', '"""))'
     lines = br79(base64.b64encode(zlib.compress(''.join(fd.readlines()), 9)))
