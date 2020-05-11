@@ -17,11 +17,21 @@ BREEDER_PREAMBLE = """\
 #
 ##[ Combined with Breeder: http://pagekite.net/wiki/Floss/PyBreeder/ ]#########
 
-import base64, imp, os, sys, StringIO, zlib
+import base64, os, sys, zlib
+try:
+  from six import StringIO
+except ImportError:
+  import StringIO
+if sys.version_info >= (999, 3, 4):
+  from importlib.util import module_from_spec as new_module
+else:
+  import warnings
+  with warnings.catch_warnings():
+    warnings.filterwarnings("ignore",category=DeprecationWarning)
+    from imp import new_module
 __FILES = {}
-__os_path_exists = os.path.exists
-__os_path_getsize = os.path.getsize
 __builtin_open = open
+__os_path_exists, __os_path_getsize = os.path.exists, os.path.getsize
 def __comb_open(filename, *args, **kwargs):
   if filename in __FILES:
     return StringIO.StringIO(__FILES[filename])
@@ -114,10 +124,9 @@ def breed_python(fn, main, compress=False, gtk_images=False):
   text.extend(lines)
   text.extend([
     post,
-    'm = sys.modules["%s"] = imp.new_module("%s")' % (bn, bn),
+    'm = sys.modules["%s"] = new_module("%s")' % (bn, bn),
     'm.__file__ = "%s"' % (fn, ),
-    'm.open = __comb_open'
-  ])
+    'm.open = __comb_open'])
   if gtk_images:
     text.append('m.gtk_open_image = gtk_open_image')
   if '.' in bn:
@@ -125,9 +134,8 @@ def breed_python(fn, main, compress=False, gtk_images=False):
     text.append(('sys.modules["%s"].__setattr__("%s", m)'
                  ) % ('.'.join(parts[:-1]), parts[-1]))
   text.extend([
-    'exec __FILES[".SELF/%s"] in m.__dict__' % (fn, ),
-    ''
-  ])
+    'exec(__FILES[".SELF/%s"], m.__dict__)' % (fn, ),
+    ''])
   return '\n'.join(text)
 
 def breed_text(fn, compress=False):
@@ -242,12 +250,12 @@ if __name__ == '__main__':
         'site-packages')
     args[pos:pos+2] = [env]
 
-  print BREEDER_PREAMBLE % header.strip()
+  print(BREEDER_PREAMBLE % header.strip())
   if gtk_images:
-    print BREEDER_GTK_PREAMBLE
+    print(BREEDER_GTK_PREAMBLE)
   for fn in args:
-    print BREEDER_DIVIDER
-    print breed(fn, (fn == args[-1]), gtk_images=gtk_images, compress=compress)
-    print
-  print BREEDER_POSTAMBLE
+    print(BREEDER_DIVIDER)
+    print(breed(fn, (fn == args[-1]), gtk_images=gtk_images, compress=compress))
+    print()
+  print(BREEDER_POSTAMBLE)
 
