@@ -19,7 +19,7 @@ BREEDER_PREAMBLE = """\
 
 import base64, os, sys, zlib
 try:
-  from six import StringIO
+  import io as StringIO
 except ImportError:
   import StringIO
 if sys.version_info >= (999, 3, 4):
