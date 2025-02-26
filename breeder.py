@@ -72,16 +72,26 @@ BREEDER_POSTAMBLE = """\
 
 BREEDER_DIVIDER = '#' * 79
 
+if sys.version_info < (3,):
+  def d(data):
+    return data
+else:
+  def d(data):
+    return str(data, 'ascii')
 
 def br79(data):
   lines = []
   while len(data) > 0:
-    lines.append(data[0:79])
+    lines.append(d(data[0:79]))
     data = data[79:]
   return lines
 
 def format_snake(fn, raw=False, compress=False, binary=False):
-  fd = open(fn, 'rb')
+  if not raw and compress or binary:
+    mode = 'rb'
+  else:
+    mode = 'r'
+  fd = open(fn, mode)
   if raw:
     pre, post = '"""\\', '"""'
     lines = [l.replace('\n', '')
@@ -90,10 +100,10 @@ def format_snake(fn, raw=False, compress=False, binary=False):
              if not l.startswith('from __future__ import')]
   elif compress:
     pre, post = 'zlib.decompress(__b64d("""\\', '"""))'
-    lines = br79(base64.b64encode(zlib.compress(''.join(fd.readlines()), 9)))
+    lines = br79(base64.b64encode(zlib.compress(fd.read(), 9)))
   elif binary:
     pre, post = '__b64d("""\\', '""")'
-    lines = br79(base64.b64encode(''.join(fd.readlines())))
+    lines = br79(base64.b64encode(fd.read()))
   else:
     pre, post = '"""\\', '"""'
     lines = [l.replace('\n', '')
@@ -158,7 +168,7 @@ def breed_binary(fn, compress=False):
 
 def breed_gtk_image(fn):
   img = gtk.Image()
-  img.set_from_file(fn) 
+  img.set_from_file(fn)
 
   pb = img.get_pixbuf()
   lines = br79(base64.b64encode(zlib.compress(pb.get_pixels(), 9)))
