@@ -1,3 +1,9 @@
+## THIS IS OBSOLETE
+
+This tool is no longer maintained and is considered obsolete.
+
+Please consider using [zipapp](https://docs.python.org/3/library/zipapp.html) instead, as it should be both more elegant and more performant.
+
 # Breeder #
 
 This is a quick-and-dirty tool for combining multiple .py (or other text)
